@@ -1,0 +1,96 @@
+"""Asynchronous Tariff API client."""
+
+from __future__ import annotations
+
+from neo_tariff._http import AsyncHttpTransport
+from neo_tariff.resources import (
+    AsyncCompareResource,
+    AsyncContextResource,
+    AsyncRatesResource,
+    AsyncSearchResource,
+    AsyncVersionsResource,
+)
+
+DEFAULT_BASE_URL = "https://tariff-data.enterprise-neo.com"
+
+
+class AsyncNeoTariff:
+    """Asynchronous client for the Neo Tariff API.
+
+    Usage::
+
+        from neo_tariff import AsyncNeoTariff
+
+        client = AsyncNeoTariff(api_key="ntf_...")
+        result = await client.rates.evaluate_entry(
+            hts_code="7208.10.15",
+            country_of_origin="CN",
+            cost=10000,
+            qty=1000,
+        )
+        print(result.data)
+
+    Or as an async context manager::
+
+        async with AsyncNeoTariff(api_key="ntf_...") as client:
+            result = await client.rates.evaluate_entry(...)
+    """
+
+    rates: AsyncRatesResource
+    search: AsyncSearchResource
+    context: AsyncContextResource
+    compare: AsyncCompareResource
+    versions: AsyncVersionsResource
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str = DEFAULT_BASE_URL,
+        timeout: float = 30.0,
+        max_retries: int = 2,
+    ) -> None:
+        self._http = AsyncHttpTransport(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
+        self.rates = AsyncRatesResource(self._http)
+        self.search = AsyncSearchResource(self._http)
+        self.context = AsyncContextResource(self._http)
+        self.compare = AsyncCompareResource(self._http)
+        self.versions = AsyncVersionsResource(self._http)
+
+    @property
+    def with_raw_response(self) -> AsyncNeoTariff:
+        """Returns a client variant whose resource methods return RawResponse.
+
+        Uses transport swapping: the same async resource classes are reused,
+        but wired with a transport that calls ``request_raw()`` instead of
+        ``request()`` / ``request_typed()``.  Return type annotations on
+        resource methods will technically be inaccurate — they say
+        ``APIResponse`` but actually return ``RawResponse``.  This is an
+        intentional trade-off for a power-user escape hatch.
+        """
+        from neo_tariff._raw import RawAsyncHttpTransport
+
+        raw_client = AsyncNeoTariff.__new__(AsyncNeoTariff)
+        raw_transport = RawAsyncHttpTransport(self._http)
+        raw_client._http = raw_transport
+        raw_client.rates = AsyncRatesResource(raw_transport)
+        raw_client.search = AsyncSearchResource(raw_transport)
+        raw_client.context = AsyncContextResource(raw_transport)
+        raw_client.compare = AsyncCompareResource(raw_transport)
+        raw_client.versions = AsyncVersionsResource(raw_transport)
+        return raw_client
+
+    async def close(self) -> None:
+        """Close the underlying HTTP connection pool."""
+        await self._http.close()
+
+    async def __aenter__(self) -> AsyncNeoTariff:
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        await self.close()

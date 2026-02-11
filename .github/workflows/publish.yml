@@ -1,0 +1,78 @@
+name: Publish to PyPI
+
+on:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: write
+  id-token: write  # Required for Trusted Publishers (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/neo-tariff/
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install hatch
+
+      - name: Determine version
+        id: version
+        run: |
+          BASE_VERSION=$(python -c "
+          import re
+          with open('pyproject.toml') as f:
+              m = re.search(r'version\s*=\s*\"(.+?)\"', f.read())
+              print(m.group(1))
+          ")
+          echo "base=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "tag=v$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            DEV_VERSION="${BASE_VERSION}.dev${GITHUB_RUN_NUMBER}"
+            echo "version=$DEV_VERSION" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+
+            # Patch version in pyproject.toml for dev build (not committed)
+            sed -i "s/version = \"$BASE_VERSION\"/version = \"$DEV_VERSION\"/" pyproject.toml
+          fi
+
+      - name: Build package
+        run: hatch build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # Uses Trusted Publishers (OIDC) — no API token needed.
+        # Configure at: https://pypi.org/manage/project/neo-tariff/settings/publishing/
+
+      - name: Create GitHub Release (stable only)
+        if: steps.version.outputs.prerelease == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: |
+            Release ${{ steps.version.outputs.version }}
+
+            ```bash
+            pip install neo-tariff==${{ steps.version.outputs.version }}
+            ```
+          draft: false
+          prerelease: false
+          files: dist/*
