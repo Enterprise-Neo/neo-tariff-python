@@ -88,14 +88,14 @@ def _parse_envelope(
         if "meta" in body and body["meta"] is not None:
             meta = APIMeta.model_validate(body["meta"])
     except Exception:
-        pass
+        pass  # Best-effort: malformed meta shouldn't prevent error reporting
     try:
         if "errors" in body and body["errors"] is not None:
             errors = [APIRespError.model_validate(e) for e in body["errors"]]
             if errors:
                 message = errors[0].message or message
     except Exception:
-        pass
+        pass  # Best-effort: malformed errors shouldn't prevent error reporting
     if "detail" in body:
         detail = body["detail"]
         if isinstance(detail, str):
@@ -157,7 +157,7 @@ def _handle_response_data(response: httpx.Response) -> APIResponse[Any]:
     try:
         body = response.json()
     except (json.JSONDecodeError, ValueError):
-        pass
+        pass  # Non-JSON response (e.g. HTML proxy error); body stays None
 
     if response.status_code >= 400:
         raise _make_http_error(response.status_code, body, raw_text)
@@ -183,7 +183,7 @@ def _handle_typed_response(
     try:
         body = response.json()
     except (json.JSONDecodeError, ValueError):
-        pass
+        pass  # Non-JSON response (e.g. HTML proxy error); body stays None
 
     if response.status_code >= 400:
         raise _make_http_error(response.status_code, body, raw_text)
@@ -212,7 +212,7 @@ def _compute_backoff(
             try:
                 backoff = max(backoff, float(retry_after))
             except ValueError:
-                pass
+                pass  # Invalid Retry-After header; use computed backoff
     return backoff
 
 
@@ -236,13 +236,13 @@ def _make_raw(response: httpx.Response) -> RawResponse:
     try:
         body = response.json()
     except Exception:
-        pass
+        pass  # Best-effort JSON parsing; body stays None for non-JSON responses
     parsed: APIResponse[Any] | None = None
     if body is not None:
         try:
             parsed = APIResponse.model_validate(body)
         except Exception:
-            pass
+            pass  # Best-effort envelope parsing; parsed stays None if schema doesn't match
     return RawResponse(http_response=response, parsed=parsed)
 
 

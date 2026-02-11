@@ -12,9 +12,15 @@ build/
 venv/
 env/
 
-# IDE
+# IDE & AI agent configs (local only, not shared)
 .vscode/
 .idea/
+.cursor/
+.claude/
+.codex/
+.ai/
+AGENTS.md
+CLAUDE.md
 *.swp
 *.swo
 
@@ -30,9 +36,3 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
-
-# caches
-.pytest_cache/
-.ruff_cache/
-__pycache__/
-*.pyc
