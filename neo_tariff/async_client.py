@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
 from neo_tariff._http import AsyncHttpTransport
+from neo_tariff.exceptions import NeoTariffError
 from neo_tariff.resources import (
     AsyncCompareResource,
     AsyncContextResource,
@@ -21,7 +24,12 @@ class AsyncNeoTariff:
 
         from neo_tariff import AsyncNeoTariff
 
+        # Auto-detect from NEO_TARIFF_API_KEY environment variable
+        client = AsyncNeoTariff()
+
+        # Or pass explicitly (overrides env var)
         client = AsyncNeoTariff(api_key="ntf_...")
+
         result = await client.rates.evaluate_entry(
             hts_code="7208.10.15",
             country_of_origin="CN",
@@ -45,22 +53,41 @@ class AsyncNeoTariff:
     def __init__(
         self,
         *,
-        api_key: str,
-        base_url: str = DEFAULT_BASE_URL,
+        api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 2,
+        default_headers: dict[str, str] | None = None,
     ) -> None:
+        if api_key is None:
+            api_key = os.environ.get("NEO_TARIFF_API_KEY")
+        if api_key is None:
+            raise NeoTariffError(
+                "No API key provided. Either pass api_key= to the client "
+                "or set the NEO_TARIFF_API_KEY environment variable."
+            )
+
+        if base_url is None:
+            base_url = os.environ.get("NEO_TARIFF_BASE_URL")
+        if base_url is None:
+            base_url = DEFAULT_BASE_URL
+
+        self._base_url = base_url
         self._http = AsyncHttpTransport(
             api_key=api_key,
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
+            default_headers=default_headers,
         )
         self.rates = AsyncRatesResource(self._http)
         self.search = AsyncSearchResource(self._http)
         self.context = AsyncContextResource(self._http)
         self.compare = AsyncCompareResource(self._http)
         self.versions = AsyncVersionsResource(self._http)
+
+    def __repr__(self) -> str:
+        return f"AsyncNeoTariff(base_url={self._base_url!r})"
 
     @property
     def with_raw_response(self) -> AsyncNeoTariff:

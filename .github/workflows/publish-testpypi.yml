@@ -1,16 +1,20 @@
-name: Publish to PyPI
+name: Publish to TestPyPI (develop)
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
+    paths:
+      - 'neo_tariff/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 concurrency:
-  group: sdk-publish-pypi-${{ github.ref_name }}
+  group: sdk-publish-testpypi-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
-  contents: write
   id-token: write  # Required for Trusted Publishers (OIDC)
 
 jobs:
@@ -40,17 +44,15 @@ jobs:
       - name: Run tests
         run: python -m pytest tests/ -q
 
-  publish:
+  publish-testpypi:
     needs: test
     runs-on: ubuntu-latest
     environment:
-      name: pypi
-      url: https://pypi.org/project/neo-tariff/
+      name: testpypi
+      url: https://test.pypi.org/project/neo-tariff/
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -60,26 +62,18 @@ jobs:
       - name: Install build tools
         run: pip install hatch twine
 
-      - name: Determine version
-        id: version
+      - name: Set dev version
         run: |
-          VERSION=$(python -c "
+          BASE_VERSION=$(python -c "
           import re
           with open('neo_tariff/_version.py') as f:
               m = re.search(r'__version__\s*=\s*\"(.+?)\"', f.read())
               print(m.group(1))
           ")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Check version not already on PyPI
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          if pip install "neo-tariff==$VERSION" --dry-run --no-deps 2>/dev/null; then
-            echo "::error::Version $VERSION already exists on PyPI. Bump the version in neo_tariff/_version.py first."
-            exit 1
-          fi
-          echo "OK: Version $VERSION not yet published."
+          DEV_VERSION="${BASE_VERSION}.dev${GITHUB_RUN_NUMBER}${GITHUB_RUN_ATTEMPT}"
+          # Patch _version.py (single source of truth) for dev build
+          sed -i "s/__version__ = \"$BASE_VERSION\"/__version__ = \"$DEV_VERSION\"/" neo_tariff/_version.py
+          echo "Publishing $DEV_VERSION to TestPyPI"
 
       - name: Build package
         run: hatch build
@@ -92,24 +86,10 @@ jobs:
           python -m venv /tmp/sdk-smoke
           /tmp/sdk-smoke/bin/pip install --upgrade pip
           /tmp/sdk-smoke/bin/pip install --no-index --find-links=dist neo-tariff
-          /tmp/sdk-smoke/bin/python -c "from neo_tariff import NeoTariff; print(NeoTariff)"
+          /tmp/sdk-smoke/bin/python -c "from neo_tariff import AsyncNeoTariff; print(AsyncNeoTariff)"
 
-      - name: Publish to PyPI
+      - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        # Uses Trusted Publishers (OIDC) — no API token needed.
-        # Configure at: https://pypi.org/manage/project/neo-tariff/settings/publishing/
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: ${{ steps.version.outputs.tag }}
-          body: |
-            Release ${{ steps.version.outputs.version }}
-
-            ```bash
-            pip install neo-tariff==${{ steps.version.outputs.version }}
-            ```
-          draft: false
-          prerelease: false
-          files: dist/*
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true  # OK for TestPyPI — dev versions may repeat

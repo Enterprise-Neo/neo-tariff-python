@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import os
 import threading
 import time
 from typing import Any, TypeVar
@@ -41,6 +43,22 @@ _USER_AGENT = f"neo-tariff-python/{__version__}"
 
 # Status codes that are safe to retry (transient server/infra errors).
 _RETRY_STATUS_CODES = {408, 429, 500, 502, 503, 504}
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+# Set NEO_TARIFF_LOG=debug (or info/warning) to enable request logging.
+
+logger = logging.getLogger("neo_tariff")
+
+_log_level_name = os.environ.get("NEO_TARIFF_LOG", "").upper()
+if _log_level_name and hasattr(logging, _log_level_name):
+    logger.setLevel(getattr(logging, _log_level_name))
+    if not logger.handlers:
+        _handler = logging.StreamHandler()
+        _handler.setFormatter(
+            logging.Formatter("%(asctime)s [neo_tariff] %(levelname)s %(message)s")
+        )
+        logger.addHandler(_handler)
+        logger.propagate = False
 
 
 def _clean(d: dict[str, Any]) -> dict[str, Any]:
@@ -268,14 +286,18 @@ class HttpTransport:
         base_url: str,
         timeout: float = 30.0,
         max_retries: int = 2,
+        default_headers: dict[str, str] | None = None,
     ) -> None:
+        headers = {
+            "X-API-Key": api_key,
+            "User-Agent": _USER_AGENT,
+            "Accept": "application/json",
+        }
+        if default_headers:
+            headers.update(default_headers)
         self._client = httpx.Client(
             base_url=base_url,
-            headers={
-                "X-API-Key": api_key,
-                "User-Agent": _USER_AGENT,
-                "Accept": "application/json",
-            },
+            headers=headers,
             timeout=timeout,
         )
         self._max_retries = max_retries
@@ -291,6 +313,7 @@ class HttpTransport:
         json_body: dict[str, Any] | None = None,
     ) -> httpx.Response:
         """Execute an HTTP request with retry logic."""
+        logger.debug("Request: %s %s params=%s", method, path, params)
         last_exc: Exception | None = None
         response: httpx.Response | None = None
 
@@ -299,16 +322,19 @@ class HttpTransport:
                 response = self._client.request(
                     method, path, params=params, json=json_body
                 )
+                logger.debug("Response: %s %s → %d", method, path, response.status_code)
                 if response.status_code not in _RETRY_STATUS_CODES:
                     return response
                 last_exc = None
             except httpx.TransportError as exc:
+                logger.debug("Transport error on attempt %d: %s", attempt + 1, exc)
                 last_exc = exc
                 response = None
 
             # Backoff before retry (skip on last attempt)
             if attempt < self._max_retries:
                 backoff = _compute_backoff(attempt, response)
+                logger.debug("Retrying in %.1fs (attempt %d)", backoff, attempt + 2)
                 time.sleep(backoff)
 
         if last_exc is not None:
@@ -392,14 +418,18 @@ class AsyncHttpTransport:
         base_url: str,
         timeout: float = 30.0,
         max_retries: int = 2,
+        default_headers: dict[str, str] | None = None,
     ) -> None:
+        headers = {
+            "X-API-Key": api_key,
+            "User-Agent": _USER_AGENT,
+            "Accept": "application/json",
+        }
+        if default_headers:
+            headers.update(default_headers)
         self._client = httpx.AsyncClient(
             base_url=base_url,
-            headers={
-                "X-API-Key": api_key,
-                "User-Agent": _USER_AGENT,
-                "Accept": "application/json",
-            },
+            headers=headers,
             timeout=timeout,
         )
         self._max_retries = max_retries
@@ -415,6 +445,7 @@ class AsyncHttpTransport:
         json_body: dict[str, Any] | None = None,
     ) -> httpx.Response:
         """Execute an HTTP request with retry logic."""
+        logger.debug("Request: %s %s params=%s", method, path, params)
         last_exc: Exception | None = None
         response: httpx.Response | None = None
 
@@ -423,16 +454,19 @@ class AsyncHttpTransport:
                 response = await self._client.request(
                     method, path, params=params, json=json_body
                 )
+                logger.debug("Response: %s %s → %d", method, path, response.status_code)
                 if response.status_code not in _RETRY_STATUS_CODES:
                     return response
                 last_exc = None
             except httpx.TransportError as exc:
+                logger.debug("Transport error on attempt %d: %s", attempt + 1, exc)
                 last_exc = exc
                 response = None
 
             # Backoff before retry (skip on last attempt)
             if attempt < self._max_retries:
                 backoff = _compute_backoff(attempt, response)
+                logger.debug("Retrying in %.1fs (attempt %d)", backoff, attempt + 2)
                 await asyncio.sleep(backoff)
 
         if last_exc is not None:

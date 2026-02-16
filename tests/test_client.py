@@ -51,6 +51,58 @@ class TestClientConstruction:
             assert c.rates is not None
 
 
+class TestEnvVarAutoDetection:
+    """Test API key and base URL auto-detection from environment variables."""
+
+    def test_sync_api_key_from_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_from_env")
+        client = NeoTariff(base_url="https://api.test.local")
+        assert client._http._client.headers["X-API-Key"] == "ntf_from_env"
+
+    def test_async_api_key_from_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_from_env")
+        client = AsyncNeoTariff(base_url="https://api.test.local")
+        assert client._http._client.headers["X-API-Key"] == "ntf_from_env"
+
+    def test_explicit_api_key_overrides_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_from_env")
+        client = NeoTariff(api_key="ntf_explicit", base_url="https://api.test.local")
+        assert client._http._client.headers["X-API-Key"] == "ntf_explicit"
+
+    def test_missing_api_key_raises(self, monkeypatch):
+        monkeypatch.delenv("NEO_TARIFF_API_KEY", raising=False)
+        with pytest.raises(NeoTariffError, match="No API key provided"):
+            NeoTariff(base_url="https://api.test.local")
+
+    def test_async_missing_api_key_raises(self, monkeypatch):
+        monkeypatch.delenv("NEO_TARIFF_API_KEY", raising=False)
+        with pytest.raises(NeoTariffError, match="No API key provided"):
+            AsyncNeoTariff(base_url="https://api.test.local")
+
+    def test_base_url_from_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_BASE_URL", "https://staging.example.com")
+        client = NeoTariff(api_key="ntf_test")
+        assert str(client._http._client.base_url) == "https://staging.example.com"
+
+    def test_explicit_base_url_overrides_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_BASE_URL", "https://staging.example.com")
+        client = NeoTariff(api_key="ntf_test", base_url="https://custom.example.com")
+        assert str(client._http._client.base_url) == "https://custom.example.com"
+
+    def test_default_base_url_when_no_env(self, monkeypatch, mock_router):
+        monkeypatch.delenv("NEO_TARIFF_BASE_URL", raising=False)
+        client = NeoTariff(api_key="ntf_test")
+        assert "tariff-data.enterprise-neo.com" in str(client._http._client.base_url)
+
+    def test_zero_config_with_env_vars(self, monkeypatch, mock_router):
+        """Verify the zero-config pattern: just set env vars, no constructor args."""
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_zero_config")
+        monkeypatch.setenv("NEO_TARIFF_BASE_URL", "https://api.test.local")
+        client = NeoTariff()
+        assert client._http._client.headers["X-API-Key"] == "ntf_zero_config"
+        assert str(client._http._client.base_url) == "https://api.test.local"
+
+
 # ── Rates resource ─────────────────────────────────────────────────────────
 
 

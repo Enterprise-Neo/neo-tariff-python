@@ -17,6 +17,19 @@ Or install a specific pre-release:
 pip install neo-tariff --pre
 ```
 
+## Release channels
+
+- `main` channel: publishes stable builds to PyPI (`https://pypi.org/project/neo-tariff/`).
+- `develop` channel: publishes `.dev` builds to TestPyPI
+  (`https://test.pypi.org/project/neo-tariff/`), intended for integration with
+  the develop TRD environment.
+
+Install from TestPyPI:
+
+```bash
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple neo-tariff --pre
+```
+
 ## Quick start
 
 ```python
@@ -41,17 +54,26 @@ if data.summary:
 
 ## Authentication
 
-Pass your API key directly or set the `NEO_TARIFF_API_KEY` environment variable:
+The SDK auto-detects your API key from the `NEO_TARIFF_API_KEY` environment variable:
+
+```bash
+export NEO_TARIFF_API_KEY="ntf_..."
+```
 
 ```python
-import os
 from neo_tariff import NeoTariff
 
-# Explicit
-client = NeoTariff(api_key="ntf_...")
+# Zero-config: reads NEO_TARIFF_API_KEY from environment
+client = NeoTariff()
 
-# From environment
-client = NeoTariff(api_key=os.environ["NEO_TARIFF_API_KEY"])
+# Or pass explicitly (overrides env var)
+client = NeoTariff(api_key="ntf_...")
+```
+
+The base URL can also be configured via environment variable for dev/staging:
+
+```bash
+export NEO_TARIFF_BASE_URL="https://staging.tariff-data.enterprise-neo.com"
 ```
 
 ## Resources
@@ -261,12 +283,18 @@ client = NeoTariff(api_key="ntf_...", max_retries=5)   # More retries for batch 
 
 ```python
 client = NeoTariff(
-    api_key="ntf_...",
-    base_url="https://tariff-data.enterprise-neo.com",  # Default
+    api_key="ntf_...",                                   # Or NEO_TARIFF_API_KEY env var
+    base_url="https://tariff-data.enterprise-neo.com",   # Or NEO_TARIFF_BASE_URL env var
     timeout=30.0,       # Request timeout in seconds
     max_retries=2,      # Retry count for transient failures
 )
 ```
+
+| Environment variable | Description |
+|---------------------|-------------|
+| `NEO_TARIFF_API_KEY` | API key (used when `api_key=` not passed) |
+| `NEO_TARIFF_BASE_URL` | API base URL (used when `base_url=` not passed) |
+| `NEO_TARIFF_LOG` | Set to `debug` to log HTTP requests/responses |
 
 ## Typed response models
 
