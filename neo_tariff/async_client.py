@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+from typing import cast
 
 from neo_tariff._http import AsyncHttpTransport
 from neo_tariff.exceptions import NeoTariffError
+from neo_tariff.resources._base import AsyncTransportLike
 from neo_tariff.resources import (
     AsyncCompareResource,
     AsyncContextResource,
@@ -49,6 +51,7 @@ class AsyncNeoTariff:
     context: AsyncContextResource
     compare: AsyncCompareResource
     versions: AsyncVersionsResource
+    _http: AsyncTransportLike
 
     def __init__(
         self,
@@ -103,7 +106,7 @@ class AsyncNeoTariff:
         from neo_tariff._raw import RawAsyncHttpTransport
 
         raw_client = AsyncNeoTariff.__new__(AsyncNeoTariff)
-        raw_transport = RawAsyncHttpTransport(self._http)
+        raw_transport = RawAsyncHttpTransport(cast(AsyncHttpTransport, self._http))
         raw_client._http = raw_transport
         raw_client.rates = AsyncRatesResource(raw_transport)
         raw_client.search = AsyncSearchResource(raw_transport)

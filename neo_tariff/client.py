@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+from typing import cast
 
 from neo_tariff._http import HttpTransport
 from neo_tariff.exceptions import NeoTariffError
+from neo_tariff.resources._base import SyncTransportLike
 from neo_tariff.resources import (
     CompareResource,
     ContextResource,
@@ -49,6 +51,7 @@ class NeoTariff:
     context: ContextResource
     compare: CompareResource
     versions: VersionsResource
+    _http: SyncTransportLike
 
     def __init__(
         self,
@@ -103,7 +106,7 @@ class NeoTariff:
         from neo_tariff._raw import RawHttpTransport
 
         raw_client = NeoTariff.__new__(NeoTariff)
-        raw_transport = RawHttpTransport(self._http)
+        raw_transport = RawHttpTransport(cast(HttpTransport, self._http))
         raw_client._http = raw_transport
         raw_client.rates = RatesResource(raw_transport)
         raw_client.search = SearchResource(raw_transport)
