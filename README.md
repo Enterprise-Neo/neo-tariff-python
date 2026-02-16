@@ -24,6 +24,10 @@ pip install neo-tariff --pre
   (`https://test.pypi.org/project/neo-tariff/`), intended for integration with
   the develop TRD environment.
 
+Maintainer runbook (sync + publishing pipeline):
+
+- Internal `tariff-reference-data` repo: `docs/SDK_RELEASE_PROCESS.md`
+
 Install from TestPyPI:
 
 ```bash
