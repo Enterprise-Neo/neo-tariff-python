@@ -38,6 +38,7 @@ ignore = ["E741"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 markers = [
     "integration: tests that hit a real API (skipped by default, requires NEO_TARIFF_TEST_API_KEY)",
 ]

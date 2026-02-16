@@ -8,15 +8,9 @@ Usage:
     python examples/search_and_lookup.py
 """
 
-import os
-
 from neo_tariff import NeoTariff
 
-api_key = os.environ.get("NEO_TARIFF_API_KEY", "")
-if not api_key:
-    raise SystemExit("Set NEO_TARIFF_API_KEY environment variable first.")
-
-with NeoTariff(api_key=api_key) as client:
+with NeoTariff() as client:
     # --- Search by description (typed: list[APIRespSearchHtsItem]) ---
     print("=== Search: 'steel pipes' ===")
     search = client.search.hts(query="steel pipes", limit=3)

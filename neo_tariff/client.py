@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import os
+from os import PathLike
 from typing import cast
 
+from neo_tariff._config import resolve_client_config
 from neo_tariff._http import HttpTransport
-from neo_tariff.exceptions import NeoTariffError
 from neo_tariff.resources._base import SyncTransportLike
 from neo_tariff.resources import (
     CompareResource,
@@ -15,8 +15,6 @@ from neo_tariff.resources import (
     SearchResource,
     VersionsResource,
 )
-
-DEFAULT_BASE_URL = "https://tariff-data.enterprise-neo.com"
 
 
 class NeoTariff:
@@ -58,29 +56,25 @@ class NeoTariff:
         *,
         api_key: str | None = None,
         base_url: str | None = None,
-        timeout: float = 30.0,
-        max_retries: int = 2,
+        timeout: float | None = None,
+        max_retries: int | None = None,
         default_headers: dict[str, str] | None = None,
+        env_file: str | PathLike[str] | None = None,
     ) -> None:
-        if api_key is None:
-            api_key = os.environ.get("NEO_TARIFF_API_KEY")
-        if api_key is None:
-            raise NeoTariffError(
-                "No API key provided. Either pass api_key= to the client "
-                "or set the NEO_TARIFF_API_KEY environment variable."
-            )
-
-        if base_url is None:
-            base_url = os.environ.get("NEO_TARIFF_BASE_URL")
-        if base_url is None:
-            base_url = DEFAULT_BASE_URL
-
-        self._base_url = base_url
-        self._http = HttpTransport(
+        config = resolve_client_config(
             api_key=api_key,
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
+            env_file=env_file,
+        )
+
+        self._base_url = config.base_url
+        self._http = HttpTransport(
+            api_key=config.api_key,
+            base_url=config.base_url,
+            timeout=config.timeout,
+            max_retries=config.max_retries,
             default_headers=default_headers,
         )
         self.rates = RatesResource(self._http)
@@ -88,6 +82,27 @@ class NeoTariff:
         self.context = ContextResource(self._http)
         self.compare = CompareResource(self._http)
         self.versions = VersionsResource(self._http)
+
+    @classmethod
+    def from_env_file(
+        cls,
+        env_file: str | PathLike[str] = ".env",
+        *,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+        default_headers: dict[str, str] | None = None,
+    ) -> NeoTariff:
+        """Create a client using values from a dotenv-style env file."""
+        return cls(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=timeout,
+            max_retries=max_retries,
+            default_headers=default_headers,
+            env_file=env_file,
+        )
 
     def __repr__(self) -> str:
         return f"NeoTariff(base_url={self._base_url!r})"

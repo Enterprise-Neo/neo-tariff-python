@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  contents: read
   id-token: write  # Required for Trusted Publishers (OIDC)
 
 jobs:
@@ -26,10 +27,10 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -44,6 +45,12 @@ jobs:
       - name: Run tests
         run: python -m pytest tests/ -q
 
+      - name: Type check
+        if: matrix.python-version == '3.12'
+        run: |
+          pip install mypy
+          mypy neo_tariff/ --ignore-missing-imports
+
   publish-testpypi:
     needs: test
     runs-on: ubuntu-latest
@@ -52,10 +59,10 @@ jobs:
       url: https://test.pypi.org/project/neo-tariff/
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
 
@@ -90,7 +97,7 @@ jobs:
           /tmp/sdk-smoke/bin/python -c "from neo_tariff import AsyncNeoTariff; print(AsyncNeoTariff)"
 
       - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-          skip-existing: true  # OK for TestPyPI — dev versions may repeat
+          skip-existing: true  # Safety for manual reruns; versions should be unique per CI run
