@@ -91,7 +91,8 @@ jobs:
         run: |
           python -m venv /tmp/sdk-smoke
           /tmp/sdk-smoke/bin/pip install --upgrade pip
-          /tmp/sdk-smoke/bin/pip install --no-index --find-links=dist neo-tariff
+          WHL_PATH="$(ls dist/*.whl | head -n 1)"
+          /tmp/sdk-smoke/bin/pip install "$WHL_PATH"
           /tmp/sdk-smoke/bin/python -c "from neo_tariff import NeoTariff; print(NeoTariff)"
 
       - name: Publish to PyPI
