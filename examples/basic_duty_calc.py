@@ -7,15 +7,9 @@ Usage:
     python examples/basic_duty_calc.py
 """
 
-import os
-
 from neo_tariff import NeoTariff
 
-api_key = os.environ.get("NEO_TARIFF_API_KEY", "")
-if not api_key:
-    raise SystemExit("Set NEO_TARIFF_API_KEY environment variable first.")
-
-with NeoTariff(api_key=api_key) as client:
+with NeoTariff() as client:
     result = client.rates.evaluate_entry(
         hts_code="7208.10.15",
         country_of_origin="CN",

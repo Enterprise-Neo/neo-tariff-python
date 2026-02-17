@@ -8,13 +8,7 @@ Usage:
     python examples/batch_calculation.py
 """
 
-import os
-
 from neo_tariff import NeoTariff
-
-api_key = os.environ.get("NEO_TARIFF_API_KEY", "")
-if not api_key:
-    raise SystemExit("Set NEO_TARIFF_API_KEY environment variable first.")
 
 entries = [
     {
@@ -40,7 +34,7 @@ entries = [
     },
 ]
 
-with NeoTariff(api_key=api_key) as client:
+with NeoTariff() as client:
     result = client.rates.evaluate_entries(data=entries)
 
     data = result.require_data()  # list[CalcResponse]

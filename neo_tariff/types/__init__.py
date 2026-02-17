@@ -60,6 +60,8 @@ from neo_tariff.types.compare import (
 from neo_tariff.types.requests import (
     CalcBatchInputs,
     CalcInputs,
+    CountryBatchInputs,
+    HtsContextBatchInputs,
     MaterialComponent,
     MaterialProcessAluminum,
     MaterialProcessSteel,
@@ -127,6 +129,8 @@ __all__ = [
     # Request models
     "CalcInputs",
     "CalcBatchInputs",
+    "HtsContextBatchInputs",
+    "CountryBatchInputs",
     "MaterialComponent",
     "MaterialProcessSteel",
     "MaterialProcessAluminum",

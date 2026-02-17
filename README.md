@@ -17,12 +17,30 @@ Or install a specific pre-release:
 pip install neo-tariff --pre
 ```
 
+## Release channels
+
+- `main` channel: publishes stable builds to PyPI (`https://pypi.org/project/neo-tariff/`).
+- `develop` channel: publishes `.dev` builds to TestPyPI
+  (`https://test.pypi.org/project/neo-tariff/`), intended for integration with
+  the develop TRD environment.
+
+Maintainer runbook (sync + publishing pipeline):
+
+- Internal `tariff-reference-data` repo: `docs/SDK_RELEASE_PROCESS.md`
+
+Install from TestPyPI:
+
+```bash
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple neo-tariff --pre
+```
+
 ## Quick start
 
 ```python
 from neo_tariff import NeoTariff
 
-client = NeoTariff(api_key="ntf_...")
+# Zero-config: reads NEO_TARIFF_API_KEY (and optional base URL/retry settings)
+client = NeoTariff()
 
 result = client.rates.evaluate_entry(
     hts_code="7208.10.15",
@@ -41,17 +59,41 @@ if data.summary:
 
 ## Authentication
 
-Pass your API key directly or set the `NEO_TARIFF_API_KEY` environment variable:
+The SDK auto-detects your API key from the `NEO_TARIFF_API_KEY` environment variable:
+
+```bash
+export NEO_TARIFF_API_KEY="ntf_..."
+```
 
 ```python
-import os
 from neo_tariff import NeoTariff
 
-# Explicit
-client = NeoTariff(api_key="ntf_...")
+# Zero-config: reads NEO_TARIFF_API_KEY from environment
+client = NeoTariff()
 
-# From environment
-client = NeoTariff(api_key=os.environ["NEO_TARIFF_API_KEY"])
+# Or pass explicitly (overrides env var)
+client = NeoTariff(api_key="ntf_...")
+```
+
+The base URL can also be configured via environment variable for dev/staging:
+
+```bash
+export NEO_TARIFF_BASE_URL="https://staging.tariff-data.enterprise-neo.com"
+```
+
+You can also configure timeout/retry behavior with environment variables:
+
+```bash
+export NEO_TARIFF_TIMEOUT="30"        # seconds
+export NEO_TARIFF_MAX_RETRIES="2"     # non-negative integer
+```
+
+If your project keeps credentials in a local `.env` file, load directly with:
+
+```python
+from neo_tariff import NeoTariff
+
+client = NeoTariff.from_env_file(".env")
 ```
 
 ## Resources
@@ -122,6 +164,10 @@ result = client.context.get_hts_details("7208100000")
 # result.data → APIRespDataHtsCodeContext
 print(result.data.description, result.data.indent_level)
 
+# Batch HTS hub context
+result = client.context.get_hts_hub_batch(["7208.10.15", "8471.30.01"])
+# result.data → dict[str, Any]
+
 # List HTS sections
 result = client.context.list_sections()
 
@@ -132,6 +178,10 @@ result = client.context.list_chapters_by_section("1")
 result = client.context.get_country("CN")
 # result.data → CountryRecord
 print(result.data.country_name, result.data.programs)
+
+# Batch country lookup
+result = client.context.get_countries_batch(["CN", "DE"])
+# result.data → dict[str, CountryRecord]
 
 # All countries
 result = client.context.list_countries()
@@ -261,12 +311,20 @@ client = NeoTariff(api_key="ntf_...", max_retries=5)   # More retries for batch 
 
 ```python
 client = NeoTariff(
-    api_key="ntf_...",
-    base_url="https://tariff-data.enterprise-neo.com",  # Default
-    timeout=30.0,       # Request timeout in seconds
-    max_retries=2,      # Retry count for transient failures
+    api_key="ntf_...",                                     # Or NEO_TARIFF_API_KEY env var
+    base_url="https://tariff-data.enterprise-neo.com",     # Or NEO_TARIFF_BASE_URL env var
+    timeout=30.0,                                           # Or NEO_TARIFF_TIMEOUT env var
+    max_retries=2,                                          # Or NEO_TARIFF_MAX_RETRIES env var
 )
 ```
+
+| Environment variable | Description |
+|---------------------|-------------|
+| `NEO_TARIFF_API_KEY` | API key (used when `api_key=` not passed) |
+| `NEO_TARIFF_BASE_URL` | API base URL (used when `base_url=` not passed) |
+| `NEO_TARIFF_TIMEOUT` | Request timeout in seconds (used when `timeout=` not passed) |
+| `NEO_TARIFF_MAX_RETRIES` | Retry count for transient failures (used when `max_retries=` not passed) |
+| `NEO_TARIFF_LOG` | Set to `debug` to log HTTP requests/responses |
 
 ## Typed response models
 
@@ -284,8 +342,13 @@ All models use `ConfigDict(extra="allow")` — new API fields are preserved with
 | `context.get_hts_code()` | `APIResponse[APIRespDataHtsCodeHub]` |
 | `context.get_hts_details()` | `APIResponse[APIRespDataHtsCodeContext]` |
 | `context.get_hts_hub()` | `APIResponse[Any]` |
+| `context.get_hts_hub_batch()` | `APIResponse[dict[str, Any]]` |
+| `context.get_hts_history()` | `APIResponse[Any]` |
+| `context.get_document_index()` | `APIResponse[Any]` |
+| `context.get_document()` | `APIResponse[Any]` |
 | `context.list_sections()` | `APIResponse[Any]` |
 | `context.list_chapters_by_section()` | `APIResponse[Any]` |
+| `context.get_countries_batch()` | `APIResponse[dict[str, CountryRecord]]` |
 | `context.list_countries()` | `APIResponse[list[CountryRecord]]` |
 | `context.get_country()` | `APIResponse[CountryRecord]` |
 | `compare.tariff()` | `APIResponse[dict[str, CalcResponse]]` |

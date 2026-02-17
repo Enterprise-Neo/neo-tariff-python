@@ -51,6 +51,153 @@ class TestClientConstruction:
             assert c.rates is not None
 
 
+class TestEnvVarAutoDetection:
+    """Test API key and base URL auto-detection from environment variables."""
+
+    def test_sync_api_key_from_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_from_env")
+        client = NeoTariff(base_url="https://api.test.local")
+        assert client._http._client.headers["X-API-Key"] == "ntf_from_env"
+
+    def test_async_api_key_from_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_from_env")
+        client = AsyncNeoTariff(base_url="https://api.test.local")
+        assert client._http._client.headers["X-API-Key"] == "ntf_from_env"
+
+    def test_explicit_api_key_overrides_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_from_env")
+        client = NeoTariff(api_key="ntf_explicit", base_url="https://api.test.local")
+        assert client._http._client.headers["X-API-Key"] == "ntf_explicit"
+
+    def test_missing_api_key_raises(self, monkeypatch):
+        monkeypatch.delenv("NEO_TARIFF_API_KEY", raising=False)
+        with pytest.raises(NeoTariffError, match="No API key provided"):
+            NeoTariff(base_url="https://api.test.local")
+
+    def test_async_missing_api_key_raises(self, monkeypatch):
+        monkeypatch.delenv("NEO_TARIFF_API_KEY", raising=False)
+        with pytest.raises(NeoTariffError, match="No API key provided"):
+            AsyncNeoTariff(base_url="https://api.test.local")
+
+    def test_base_url_from_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_BASE_URL", "https://staging.example.com")
+        client = NeoTariff(api_key="ntf_test")
+        assert str(client._http._client.base_url) == "https://staging.example.com"
+
+    def test_explicit_base_url_overrides_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_BASE_URL", "https://staging.example.com")
+        client = NeoTariff(api_key="ntf_test", base_url="https://custom.example.com")
+        assert str(client._http._client.base_url) == "https://custom.example.com"
+
+    def test_default_base_url_when_no_env(self, monkeypatch, mock_router):
+        monkeypatch.delenv("NEO_TARIFF_BASE_URL", raising=False)
+        client = NeoTariff(api_key="ntf_test")
+        assert "tariff-data.enterprise-neo.com" in str(client._http._client.base_url)
+
+    def test_zero_config_with_env_vars(self, monkeypatch, mock_router):
+        """Verify the zero-config pattern: just set env vars, no constructor args."""
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_zero_config")
+        monkeypatch.setenv("NEO_TARIFF_BASE_URL", "https://api.test.local")
+        client = NeoTariff()
+        assert client._http._client.headers["X-API-Key"] == "ntf_zero_config"
+        assert str(client._http._client.base_url) == "https://api.test.local"
+
+    def test_timeout_from_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_timeout_env")
+        monkeypatch.setenv("NEO_TARIFF_BASE_URL", "https://api.test.local")
+        monkeypatch.setenv("NEO_TARIFF_TIMEOUT", "12.5")
+        client = NeoTariff()
+        assert client._http._client.timeout.connect == 12.5
+
+    def test_max_retries_from_env(self, monkeypatch, mock_router):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_retries_env")
+        monkeypatch.setenv("NEO_TARIFF_BASE_URL", "https://api.test.local")
+        monkeypatch.setenv("NEO_TARIFF_MAX_RETRIES", "7")
+        client = NeoTariff()
+        assert client._http._max_retries == 7
+
+    def test_invalid_timeout_env_raises(self, monkeypatch):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_bad_timeout")
+        monkeypatch.setenv("NEO_TARIFF_TIMEOUT", "not-a-number")
+        with pytest.raises(NeoTariffError, match="Invalid NEO_TARIFF_TIMEOUT"):
+            NeoTariff()
+
+    def test_invalid_max_retries_env_raises(self, monkeypatch):
+        monkeypatch.setenv("NEO_TARIFF_API_KEY", "ntf_bad_retries")
+        monkeypatch.setenv("NEO_TARIFF_MAX_RETRIES", "not-int")
+        with pytest.raises(NeoTariffError, match="Invalid NEO_TARIFF_MAX_RETRIES"):
+            NeoTariff()
+
+    def test_sync_from_env_file(self, tmp_path, monkeypatch, mock_router):
+        monkeypatch.delenv("NEO_TARIFF_API_KEY", raising=False)
+        env_file = tmp_path / ".env"
+        env_file.write_text(
+            "\n".join(
+                [
+                    "NEO_TARIFF_API_KEY=ntf_from_file",
+                    "NEO_TARIFF_BASE_URL=https://api.test.local",
+                    "NEO_TARIFF_TIMEOUT=11",
+                    "NEO_TARIFF_MAX_RETRIES=4",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        client = NeoTariff.from_env_file(env_file)
+        assert client._http._client.headers["X-API-Key"] == "ntf_from_file"
+        assert str(client._http._client.base_url) == "https://api.test.local"
+        assert client._http._client.timeout.connect == 11.0
+        assert client._http._max_retries == 4
+
+    def test_async_from_env_file(self, tmp_path, monkeypatch, mock_router):
+        monkeypatch.delenv("NEO_TARIFF_API_KEY", raising=False)
+        env_file = tmp_path / ".env"
+        env_file.write_text(
+            "\n".join(
+                [
+                    "NEO_TARIFF_API_KEY=ntf_from_file_async",
+                    "NEO_TARIFF_BASE_URL=https://api.test.local",
+                    "NEO_TARIFF_TIMEOUT=9",
+                    "NEO_TARIFF_MAX_RETRIES=3",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        client = AsyncNeoTariff.from_env_file(env_file)
+        assert client._http._client.headers["X-API-Key"] == "ntf_from_file_async"
+        assert str(client._http._client.base_url) == "https://api.test.local"
+        assert client._http._client.timeout.connect == 9.0
+        assert client._http._max_retries == 3
+
+    def test_explicit_kwargs_override_env_file(self, tmp_path, mock_router):
+        env_file = tmp_path / ".env"
+        env_file.write_text(
+            "\n".join(
+                [
+                    "NEO_TARIFF_API_KEY=ntf_from_file",
+                    "NEO_TARIFF_BASE_URL=https://env-file.example.com",
+                    "NEO_TARIFF_TIMEOUT=8",
+                    "NEO_TARIFF_MAX_RETRIES=8",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        client = NeoTariff.from_env_file(
+            env_file,
+            api_key="ntf_explicit",
+            base_url="https://api.test.local",
+            timeout=13.0,
+            max_retries=1,
+        )
+        assert client._http._client.headers["X-API-Key"] == "ntf_explicit"
+        assert str(client._http._client.base_url) == "https://api.test.local"
+        assert client._http._client.timeout.connect == 13.0
+        assert client._http._max_retries == 1
+
+    def test_missing_env_file_raises(self):
+        with pytest.raises(NeoTariffError, match="Env file not found"):
+            NeoTariff.from_env_file("/tmp/does-not-exist-sdk.env")
+
+
 # ── Rates resource ─────────────────────────────────────────────────────────
 
 
@@ -203,11 +350,20 @@ class TestContext:
         assert result.success is True
 
     def test_list_chapters_by_section(self, client, mock_router, success_envelope):
-        mock_router.get("/context/hts/sections/1/chapters").mock(
+        route = mock_router.get("/context/hts/sections/1/chapters").mock(
             return_value=httpx.Response(200, json=success_envelope([]))
         )
-        result = client.context.list_chapters_by_section("1")
+        result = client.context.list_chapters_by_section(
+            "1",
+            include_context=True,
+            include_hts_codes=True,
+        )
         assert result.success is True
+        params = route.calls.last.request.url.params
+        assert params["bool_context"] == "true"
+        assert params["bool_hts_codes"] == "true"
+        assert "include_context" not in params
+        assert "include_hts_codes" not in params
 
     def test_get_hts_code(self, client, mock_router, success_envelope):
         mock_router.get("/context/hts/7208.10.15").mock(
@@ -246,6 +402,73 @@ class TestContext:
         result = client.context.get_hts_hub("7208.10.15")
         assert result.success is True
 
+    def test_get_hts_hub_batch(self, client, mock_router, success_envelope):
+        mock_router.post("/context/hts/batch").mock(
+            return_value=httpx.Response(
+                200,
+                json=success_envelope(
+                    {
+                        "7208.10.15": {
+                            "hts_code": "7208.10.15",
+                            "code_type": "leaf",
+                            "basic": {},
+                        }
+                    }
+                ),
+            )
+        )
+        result = client.context.get_hts_hub_batch(["7208.10.15"])
+        assert result.success is True
+        assert "7208.10.15" in result.data
+
+    def test_get_hts_history(self, client, mock_router, success_envelope):
+        mock_router.get("/context/hts/7208.10.15/history").mock(
+            return_value=httpx.Response(
+                200,
+                json=success_envelope(
+                    [
+                        {
+                            "year": 2025,
+                            "version": 25,
+                            "hts_entry": {"hts_code": "7208100000"},
+                        }
+                    ]
+                ),
+            )
+        )
+        result = client.context.get_hts_history("7208.10.15")
+        assert result.success is True
+        assert isinstance(result.data, list)
+
+    def test_get_document_index(self, client, mock_router, success_envelope):
+        mock_router.get("/context/hts/document-index").mock(
+            return_value=httpx.Response(
+                200,
+                json=success_envelope(
+                    {"intro": [], "general_notes": [], "appendices": []}
+                ),
+            )
+        )
+        result = client.context.get_document_index()
+        assert result.success is True
+
+    def test_get_document(self, client, mock_router, success_envelope):
+        mock_router.get("/context/document/chapter-1-note").mock(
+            return_value=httpx.Response(
+                200,
+                json=success_envelope(
+                    {
+                        "document_id": "chapter-1-note",
+                        "document_type": "note",
+                        "alias": "chapter-note",
+                        "title": "Chapter 1 note",
+                    }
+                ),
+            )
+        )
+        result = client.context.get_document("chapter-1-note")
+        assert result.success is True
+
     def test_list_countries(self, client, mock_router, success_envelope):
         mock_router.get("/context/countries").mock(
             return_value=httpx.Response(200, json=success_envelope([]))
@@ -266,6 +489,24 @@ class TestContext:
 
         assert isinstance(result.data, CountryRecord)
         assert result.data.country_name == "China"
+
+    def test_get_countries_batch(self, client, mock_router, success_envelope):
+        mock_router.post("/context/countries/batch").mock(
+            return_value=httpx.Response(
+                200,
+                json=success_envelope(
+                    {
+                        "CN": {"country_name": "China", "iso_alpha2": "CN"},
+                        "DE": {"country_name": "Germany", "iso_alpha2": "DE"},
+                    }
+                ),
+            )
+        )
+        result = client.context.get_countries_batch(["CN", "DE"])
+        assert result.success is True
+        from neo_tariff.types.countries import CountryRecord
+
+        assert isinstance(result.data["CN"], CountryRecord)
 
 
 # ── Compare resource ───────────────────────────────────────────────────────

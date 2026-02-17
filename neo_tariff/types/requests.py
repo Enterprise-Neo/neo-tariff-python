@@ -200,3 +200,58 @@ class CalcBatchInputs(BaseModel):
     )
     hts_year: int | None = Field(default=None, description="Default HTS year.")
     hts_version: int | None = Field(default=None, description="Default HTS version.")
+
+
+class HtsContextBatchInputs(BaseModel):
+    """Batch request for HTS hub context endpoint.
+
+    Usage::
+
+        from neo_tariff.types.requests import HtsContextBatchInputs
+        req = HtsContextBatchInputs(
+            hts_codes=["7208.10.15", "8471.30.01"],
+            include="rates,history",
+        )
+        result = client.context.get_hts_hub_batch(**req.model_dump(exclude_none=True))
+    """
+
+    hts_codes: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="HTS codes to retrieve in a single request.",
+    )
+    include: str | None = Field(
+        default=None,
+        description="Optional comma-separated include selectors for hub payload.",
+    )
+    history_lookback: int = Field(
+        default=2,
+        ge=0,
+        le=20,
+        description="How many historical revisions to include (when requested).",
+    )
+    hts_date: str | None = Field(default=None, description="Date-based HTS resolution.")
+    hts_year: int | None = Field(default=None, description="Explicit HTS year.")
+    hts_version: int | None = Field(default=None, description="Explicit HTS version.")
+
+
+class CountryBatchInputs(BaseModel):
+    """Batch request for country context endpoint.
+
+    Usage::
+
+        from neo_tariff.types.requests import CountryBatchInputs
+        req = CountryBatchInputs(identifiers=["CN", "DE", "MX"])
+        result = client.context.get_countries_batch(**req.model_dump(exclude_none=True))
+    """
+
+    identifiers: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Country identifiers (ISO alpha-2, alpha-3, names).",
+    )
+    hts_date: str | None = Field(default=None, description="Date-based HTS resolution.")
+    hts_year: int | None = Field(default=None, description="Explicit HTS year.")
+    hts_version: int | None = Field(default=None, description="Explicit HTS version.")

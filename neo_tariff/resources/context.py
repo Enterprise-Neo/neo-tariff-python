@@ -53,8 +53,8 @@ class ContextResource(SyncResource):
         """
         params = _clean(
             {
-                "include_context": include_context or None,
-                "include_hts_codes": include_hts_codes or None,
+                "bool_context": include_context or None,
+                "bool_hts_codes": include_hts_codes or None,
                 "hts_date": hts_date,
                 "hts_year": hts_year,
                 "hts_version": hts_version,
@@ -179,6 +179,91 @@ class ContextResource(SyncResource):
         )
         return self._http.request("GET", f"/context/hts/{hts_code}/hub", params=params)
 
+    def get_hts_hub_batch(
+        self,
+        hts_codes: list[str],
+        *,
+        include: str | None = None,
+        history_lookback: int = 2,
+        hts_date: str | None = None,
+        hts_year: int | None = None,
+        hts_version: int | None = None,
+    ) -> APIResponse[dict[str, Any]]:
+        """Get HTS hub context for multiple codes in one request.
+
+        Calls ``POST /context/hts/batch``.
+        """
+        json_body = _clean(
+            {
+                "hts_codes": hts_codes,
+                "include": include,
+                "history_lookback": history_lookback,
+                "hts_date": hts_date,
+                "hts_year": hts_year,
+                "hts_version": hts_version,
+            }
+        )
+        return self._http.request_typed(
+            "POST",
+            "/context/hts/batch",
+            json_body=json_body,
+            response_type=dict[str, Any],
+        )
+
+    def get_hts_history(self, hts_code: str) -> APIResponse[Any]:
+        """Get historical versions for an HTS code.
+
+        Calls ``GET /context/hts/{hts_code}/history``.
+        """
+        return self._http.request("GET", f"/context/hts/{hts_code}/history")
+
+    def get_document_index(
+        self,
+        *,
+        include_schedule: bool = False,
+        hts_date: str | None = None,
+        hts_year: int | None = None,
+        hts_version: int | None = None,
+    ) -> APIResponse[Any]:
+        """Get index of structured HTS notes/documents.
+
+        Calls ``GET /context/hts/document-index``.
+        """
+        params = _clean(
+            {
+                "include_schedule": include_schedule or None,
+                "hts_date": hts_date,
+                "hts_year": hts_year,
+                "hts_version": hts_version,
+            }
+        )
+        return self._http.request("GET", "/context/hts/document-index", params=params)
+
+    def get_document(
+        self,
+        document_id: str,
+        *,
+        hts_date: str | None = None,
+        hts_year: int | None = None,
+        hts_version: int | None = None,
+    ) -> APIResponse[Any]:
+        """Get document content by document identifier.
+
+        Calls ``GET /context/document/{document_id}``.
+        """
+        params = _clean(
+            {
+                "hts_date": hts_date,
+                "hts_year": hts_year,
+                "hts_version": hts_version,
+            }
+        )
+        return self._http.request(
+            "GET",
+            f"/context/document/{document_id}",
+            params=params,
+        )
+
     def list_countries(
         self,
         *,
@@ -230,6 +315,33 @@ class ContextResource(SyncResource):
             response_type=CountryRecord,
         )
 
+    def get_countries_batch(
+        self,
+        identifiers: list[str],
+        *,
+        hts_date: str | None = None,
+        hts_year: int | None = None,
+        hts_version: int | None = None,
+    ) -> APIResponse[dict[str, CountryRecord]]:
+        """Get country context in batch.
+
+        Calls ``POST /context/countries/batch``.
+        """
+        json_body = _clean(
+            {
+                "identifiers": identifiers,
+                "hts_date": hts_date,
+                "hts_year": hts_year,
+                "hts_version": hts_version,
+            }
+        )
+        return self._http.request_typed(
+            "POST",
+            "/context/countries/batch",
+            json_body=json_body,
+            response_type=dict[str, CountryRecord],
+        )
+
 
 class AsyncContextResource(AsyncResource):
     """Asynchronous context resource."""
@@ -272,8 +384,8 @@ class AsyncContextResource(AsyncResource):
         """
         params = _clean(
             {
-                "include_context": include_context or None,
-                "include_hts_codes": include_hts_codes or None,
+                "bool_context": include_context or None,
+                "bool_hts_codes": include_hts_codes or None,
                 "hts_date": hts_date,
                 "hts_year": hts_year,
                 "hts_version": hts_version,
@@ -400,6 +512,93 @@ class AsyncContextResource(AsyncResource):
             "GET", f"/context/hts/{hts_code}/hub", params=params
         )
 
+    async def get_hts_hub_batch(
+        self,
+        hts_codes: list[str],
+        *,
+        include: str | None = None,
+        history_lookback: int = 2,
+        hts_date: str | None = None,
+        hts_year: int | None = None,
+        hts_version: int | None = None,
+    ) -> APIResponse[dict[str, Any]]:
+        """Get HTS hub context for multiple codes in one request.
+
+        Calls ``POST /context/hts/batch``.
+        """
+        json_body = _clean(
+            {
+                "hts_codes": hts_codes,
+                "include": include,
+                "history_lookback": history_lookback,
+                "hts_date": hts_date,
+                "hts_year": hts_year,
+                "hts_version": hts_version,
+            }
+        )
+        return await self._http.request_typed(
+            "POST",
+            "/context/hts/batch",
+            json_body=json_body,
+            response_type=dict[str, Any],
+        )
+
+    async def get_hts_history(self, hts_code: str) -> APIResponse[Any]:
+        """Get historical versions for an HTS code.
+
+        Calls ``GET /context/hts/{hts_code}/history``.
+        """
+        return await self._http.request("GET", f"/context/hts/{hts_code}/history")
+
+    async def get_document_index(
+        self,
+        *,
+        include_schedule: bool = False,
+        hts_date: str | None = None,
+        hts_year: int | None = None,
+        hts_version: int | None = None,
+    ) -> APIResponse[Any]:
+        """Get index of structured HTS notes/documents.
+
+        Calls ``GET /context/hts/document-index``.
+        """
+        params = _clean(
+            {
+                "include_schedule": include_schedule or None,
+                "hts_date": hts_date,
+                "hts_year": hts_year,
+                "hts_version": hts_version,
+            }
+        )
+        return await self._http.request(
+            "GET", "/context/hts/document-index", params=params
+        )
+
+    async def get_document(
+        self,
+        document_id: str,
+        *,
+        hts_date: str | None = None,
+        hts_year: int | None = None,
+        hts_version: int | None = None,
+    ) -> APIResponse[Any]:
+        """Get document content by document identifier.
+
+        Calls ``GET /context/document/{document_id}``.
+        """
+        params = _clean(
+            {
+                "hts_date": hts_date,
+                "hts_year": hts_year,
+                "hts_version": hts_version,
+            }
+        )
+        return await self._http.request(
+            "GET",
+            f"/context/document/{document_id}",
+            params=params,
+        )
+
     async def list_countries(
         self,
         *,
@@ -449,4 +648,31 @@ class AsyncContextResource(AsyncResource):
             f"/context/countries/{identifier}",
             params=params,
             response_type=CountryRecord,
+        )
+
+    async def get_countries_batch(
+        self,
+        identifiers: list[str],
+        *,
+        hts_date: str | None = None,
+        hts_year: int | None = None,
+        hts_version: int | None = None,
+    ) -> APIResponse[dict[str, CountryRecord]]:
+        """Get country context in batch.
+
+        Calls ``POST /context/countries/batch``.
+        """
+        json_body = _clean(
+            {
+                "identifiers": identifiers,
+                "hts_date": hts_date,
+                "hts_year": hts_year,
+                "hts_version": hts_version,
+            }
+        )
+        return await self._http.request_typed(
+            "POST",
+            "/context/countries/batch",
+            json_body=json_body,
+            response_type=dict[str, CountryRecord],
         )
