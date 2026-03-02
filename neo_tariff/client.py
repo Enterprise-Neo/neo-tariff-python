@@ -9,6 +9,7 @@ from neo_tariff._config import resolve_client_config
 from neo_tariff._http import HttpTransport
 from neo_tariff.resources._base import SyncTransportLike
 from neo_tariff.resources import (
+    AgentResource,
     CompareResource,
     ContextResource,
     RatesResource,
@@ -44,6 +45,7 @@ class NeoTariff:
             result = client.rates.evaluate_entry(...)
     """
 
+    agent: AgentResource
     rates: RatesResource
     search: SearchResource
     context: ContextResource
@@ -77,6 +79,7 @@ class NeoTariff:
             max_retries=config.max_retries,
             default_headers=default_headers,
         )
+        self.agent = AgentResource(self._http)
         self.rates = RatesResource(self._http)
         self.search = SearchResource(self._http)
         self.context = ContextResource(self._http)
@@ -123,6 +126,7 @@ class NeoTariff:
         raw_client = NeoTariff.__new__(NeoTariff)
         raw_transport = RawHttpTransport(cast(HttpTransport, self._http))
         raw_client._http = raw_transport
+        raw_client.agent = AgentResource(raw_transport)
         raw_client.rates = RatesResource(raw_transport)
         raw_client.search = SearchResource(raw_transport)
         raw_client.context = ContextResource(raw_transport)
