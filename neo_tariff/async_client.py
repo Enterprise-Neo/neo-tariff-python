@@ -9,6 +9,7 @@ from neo_tariff._config import resolve_client_config
 from neo_tariff._http import AsyncHttpTransport
 from neo_tariff.resources._base import AsyncTransportLike
 from neo_tariff.resources import (
+    AsyncAgentResource,
     AsyncCompareResource,
     AsyncContextResource,
     AsyncRatesResource,
@@ -44,6 +45,7 @@ class AsyncNeoTariff:
             result = await client.rates.evaluate_entry(...)
     """
 
+    agent: AsyncAgentResource
     rates: AsyncRatesResource
     search: AsyncSearchResource
     context: AsyncContextResource
@@ -77,6 +79,7 @@ class AsyncNeoTariff:
             max_retries=config.max_retries,
             default_headers=default_headers,
         )
+        self.agent = AsyncAgentResource(self._http)
         self.rates = AsyncRatesResource(self._http)
         self.search = AsyncSearchResource(self._http)
         self.context = AsyncContextResource(self._http)
@@ -123,6 +126,7 @@ class AsyncNeoTariff:
         raw_client = AsyncNeoTariff.__new__(AsyncNeoTariff)
         raw_transport = RawAsyncHttpTransport(cast(AsyncHttpTransport, self._http))
         raw_client._http = raw_transport
+        raw_client.agent = AsyncAgentResource(raw_transport)
         raw_client.rates = AsyncRatesResource(raw_transport)
         raw_client.search = AsyncSearchResource(raw_transport)
         raw_client.context = AsyncContextResource(raw_transport)

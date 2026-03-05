@@ -1,0 +1,38 @@
+name: Check SDK CHANGELOG
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'neo_tariff/_version.py'
+
+jobs:
+  check-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(python3 -c "
+          import re, sys
+          with open('neo_tariff/_version.py') as f:
+              m = re.search(r'__version__\s*=\s*\"(.+?)\"', f.read())
+          if not m:
+              print('::error::Failed to parse version from neo_tariff/_version.py', file=sys.stderr)
+              sys.exit(1)
+          print(m.group(1))
+          ")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check CHANGELOG has entry
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! grep -q "\[${VERSION}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no [$VERSION] entry. Add release notes before publishing."
+            echo ""
+            echo "Expected to find a line like: ## [$VERSION] - YYYY-MM-DD"
+            exit 1
+          fi
+          echo "OK: Found [$VERSION] entry in CHANGELOG.md"

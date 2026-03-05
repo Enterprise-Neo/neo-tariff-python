@@ -15,6 +15,16 @@ from neo_tariff.exceptions import (
     NeoTariffError,
     ValidationError,
 )
+from neo_tariff.types.agent import (
+    AgentChatResponse,
+    AgentCitation,
+    AgentContext,
+    AgentResponseMetadata,
+    AgentToolCall,
+    AgentTrace,
+    AgentTraceStep,
+    DeleteConversationResponse,
+)
 from neo_tariff.types.compare import CompareRatesResponse, CompareSourcesResponse
 from neo_tariff.types.context import APIRespDataHtsCodeContext, APIRespDataHtsCodeHub
 from neo_tariff.types.countries import CountryRecord
@@ -39,6 +49,15 @@ __all__ = [
     "ValidationError",
     "RateLimitError",
     "ServerError",
+    # Agent types
+    "AgentChatResponse",
+    "AgentCitation",
+    "AgentContext",
+    "AgentResponseMetadata",
+    "AgentToolCall",
+    "AgentTrace",
+    "AgentTraceStep",
+    "DeleteConversationResponse",
     # Response types
     "CalcResponse",
     "CompareRatesResponse",
