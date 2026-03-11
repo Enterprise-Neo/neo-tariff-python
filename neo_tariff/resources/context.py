@@ -85,6 +85,7 @@ class ContextResource(SyncResource):
         is_personal_baggage: bool = False,
         usmca_claim: bool = False,
         program_qualified: bool = True,
+        qualified_trade_programs: list[str] | None = None,
         chapter98_provision: str | None = None,
         is_civil_aircraft: bool = False,
         hts_date: str | None = None,
@@ -114,6 +115,7 @@ class ContextResource(SyncResource):
                 "program_qualified": program_qualified
                 if not program_qualified
                 else None,
+                "qualified_trade_programs": qualified_trade_programs,
                 "chapter98_provision": chapter98_provision,
                 "is_civil_aircraft": is_civil_aircraft or None,
                 "hts_date": hts_date,
@@ -416,6 +418,7 @@ class AsyncContextResource(AsyncResource):
         is_personal_baggage: bool = False,
         usmca_claim: bool = False,
         program_qualified: bool = True,
+        qualified_trade_programs: list[str] | None = None,
         chapter98_provision: str | None = None,
         is_civil_aircraft: bool = False,
         hts_date: str | None = None,
@@ -445,6 +448,7 @@ class AsyncContextResource(AsyncResource):
                 "program_qualified": program_qualified
                 if not program_qualified
                 else None,
+                "qualified_trade_programs": qualified_trade_programs,
                 "chapter98_provision": chapter98_provision,
                 "is_civil_aircraft": is_civil_aircraft or None,
                 "hts_date": hts_date,

@@ -39,6 +39,7 @@ class RatesResource(SyncResource):
         is_personal_baggage: bool = False,
         usmca_claim: bool = False,
         program_qualified: bool = True,
+        qualified_trade_programs: list[str] | None = None,
         chapter98_provision: str | None = None,
         is_civil_aircraft: bool = False,
         materials: list[dict[str, Any]] | None = None,
@@ -75,6 +76,7 @@ class RatesResource(SyncResource):
                 "is_personal_baggage": is_personal_baggage,
                 "usmca_claim": usmca_claim,
                 "program_qualified": program_qualified,
+                "qualified_trade_programs": qualified_trade_programs,
                 "chapter98_provision": chapter98_provision,
                 "is_civil_aircraft": is_civil_aircraft,
                 "materials": materials,
@@ -153,16 +155,18 @@ class RatesResource(SyncResource):
         admitted_to_ftz: bool = False,
         usmca_claim: bool = False,
         program_qualified: bool = True,
+        qualified_trade_programs: list[str] | None = None,
         is_donation: bool = False,
         is_informational: bool = False,
         is_personal_baggage: bool = False,
+        is_civil_aircraft: bool = False,
         chapter98_provision: str | None = None,
         materials: list[dict[str, Any]] | None = None,
         selected_code_conditions: list[str] | None = None,
         product_usage: str | None = None,
         include_debug: bool = False,
         include_reciprocal_debug: bool = False,
-    ) -> APIResponse[list[CalcResponse]]:
+    ) -> APIResponse[dict[str, CalcResponse]]:
         """Evaluate duty across multiple countries for a single HTS code.
 
         Calls ``POST /rates/multicountry``.
@@ -187,9 +191,11 @@ class RatesResource(SyncResource):
                 "admitted_to_ftz": admitted_to_ftz,
                 "usmca_claim": usmca_claim,
                 "program_qualified": program_qualified,
+                "qualified_trade_programs": qualified_trade_programs,
                 "is_donation": is_donation,
                 "is_informational": is_informational,
                 "is_personal_baggage": is_personal_baggage,
+                "is_civil_aircraft": is_civil_aircraft,
                 "chapter98_provision": chapter98_provision,
                 "materials": materials,
                 "selected_code_conditions": selected_code_conditions,
@@ -207,7 +213,7 @@ class RatesResource(SyncResource):
             "/rates/multicountry",
             json_body=body,
             params=params or None,
-            response_type=list[CalcResponse],
+            response_type=dict[str, CalcResponse],
         )
 
 
@@ -239,6 +245,7 @@ class AsyncRatesResource(AsyncResource):
         is_personal_baggage: bool = False,
         usmca_claim: bool = False,
         program_qualified: bool = True,
+        qualified_trade_programs: list[str] | None = None,
         chapter98_provision: str | None = None,
         is_civil_aircraft: bool = False,
         materials: list[dict[str, Any]] | None = None,
@@ -275,6 +282,7 @@ class AsyncRatesResource(AsyncResource):
                 "is_personal_baggage": is_personal_baggage,
                 "usmca_claim": usmca_claim,
                 "program_qualified": program_qualified,
+                "qualified_trade_programs": qualified_trade_programs,
                 "chapter98_provision": chapter98_provision,
                 "is_civil_aircraft": is_civil_aircraft,
                 "materials": materials,
@@ -353,16 +361,18 @@ class AsyncRatesResource(AsyncResource):
         admitted_to_ftz: bool = False,
         usmca_claim: bool = False,
         program_qualified: bool = True,
+        qualified_trade_programs: list[str] | None = None,
         is_donation: bool = False,
         is_informational: bool = False,
         is_personal_baggage: bool = False,
+        is_civil_aircraft: bool = False,
         chapter98_provision: str | None = None,
         materials: list[dict[str, Any]] | None = None,
         selected_code_conditions: list[str] | None = None,
         product_usage: str | None = None,
         include_debug: bool = False,
         include_reciprocal_debug: bool = False,
-    ) -> APIResponse[list[CalcResponse]]:
+    ) -> APIResponse[dict[str, CalcResponse]]:
         """Evaluate duty across multiple countries for a single HTS code.
 
         Calls ``POST /rates/multicountry``.
@@ -387,9 +397,11 @@ class AsyncRatesResource(AsyncResource):
                 "admitted_to_ftz": admitted_to_ftz,
                 "usmca_claim": usmca_claim,
                 "program_qualified": program_qualified,
+                "qualified_trade_programs": qualified_trade_programs,
                 "is_donation": is_donation,
                 "is_informational": is_informational,
                 "is_personal_baggage": is_personal_baggage,
+                "is_civil_aircraft": is_civil_aircraft,
                 "chapter98_provision": chapter98_provision,
                 "materials": materials,
                 "selected_code_conditions": selected_code_conditions,
@@ -407,5 +419,5 @@ class AsyncRatesResource(AsyncResource):
             "/rates/multicountry",
             json_body=body,
             params=params or None,
-            response_type=list[CalcResponse],
+            response_type=dict[str, CalcResponse],
         )
