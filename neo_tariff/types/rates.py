@@ -472,8 +472,23 @@ class ReciprocalContext(BaseModel):
         default=False, description="Informational materials."
     )
     is_personal_baggage: bool = Field(default=False, description="Personal baggage.")
-    usmca_claim: bool = Field(default=False, description="USMCA claim.")
-    program_qualified: bool = Field(default=True, description="Program eligibility.")
+    usmca_claim: bool = Field(
+        default=False,
+        description=(
+            "[DEPRECATED] USMCA claim. Prefer qualified_trade_programs with "
+            "'S' or 'S+'."
+        ),
+    )
+    program_qualified: bool = Field(
+        default=True,
+        description=(
+            "[DEPRECATED] Program eligibility flag. Prefer qualified_trade_programs."
+        ),
+    )
+    qualified_trade_programs: list[str] | None = Field(
+        default=None,
+        description="Normalized claimed special program codes used in evaluation.",
+    )
     chapter98_provision: str | None = Field(
         default=None, description="Chapter 98 provision."
     )

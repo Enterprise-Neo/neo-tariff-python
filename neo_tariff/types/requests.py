@@ -149,9 +149,26 @@ class CalcInputs(BaseModel):
     is_personal_baggage: bool = Field(
         default=False, description="Personal accompanied baggage."
     )
-    usmca_claim: bool = Field(default=False, description="USMCA preferential claim.")
+    usmca_claim: bool = Field(
+        default=False,
+        description=(
+            "[DEPRECATED] USMCA preferential claim. "
+            "Prefer qualified_trade_programs with 'S' or 'S+'."
+        ),
+    )
     program_qualified: bool = Field(
-        default=True, description="Declarant affirms program eligibility."
+        default=True,
+        description=(
+            "[DEPRECATED] Declarant affirms program eligibility. "
+            "Prefer qualified_trade_programs."
+        ),
+    )
+    qualified_trade_programs: list[str] | None = Field(
+        default=None,
+        description=(
+            "Explicit claimed special program codes (e.g., ['S', 'SG']). "
+            "Authoritative when provided; [] means no claimed programs."
+        ),
     )
     chapter98_provision: str | None = Field(
         default=None, description="Chapter 98 provision claimed."

@@ -273,10 +273,11 @@ class TestRates:
             return_value=httpx.Response(
                 200,
                 json=success_envelope(
-                    [
-                        {"totals": {}, "components": [], "is_composite": False},
-                        {"totals": {}, "components": [], "is_composite": False},
-                    ]
+                    {
+                        "CN": {"totals": {}, "components": [], "is_composite": False},
+                        "DE": {"totals": {}, "components": [], "is_composite": False},
+                        "JP": {"totals": {}, "components": [], "is_composite": False},
+                    }
                 ),
             )
         )
@@ -287,7 +288,8 @@ class TestRates:
             qty=1000,
         )
         assert result.success is True
-        assert isinstance(result.data, list)
+        assert isinstance(result.data, dict)
+        assert set(result.data.keys()) == {"CN", "DE", "JP"}
 
 
 # ── Search resource ────────────────────────────────────────────────────────
